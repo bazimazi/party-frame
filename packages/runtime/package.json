@@ -1,0 +1,45 @@
+{
+  "name": "@party-frame/runtime",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "description": "Colyseus session room, adapters, room codes, and rate limits for party-frame.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bazimazi/party-frame.git",
+    "directory": "packages/runtime"
+  },
+  "homepage": "https://github.com/bazimazi/party-frame#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsc -b --watch --preserveWatchOutput",
+    "typecheck": "tsc -b --pretty",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@colyseus/core": "0.16.24",
+    "@colyseus/schema": "3.0.76",
+    "@colyseus/ws-transport": "0.16.5",
+    "@party-frame/game-core": "0.1.0",
+    "@party-frame/protocol": "0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3"
+  },
+  "files": [
+    "dist"
+  ]
+}

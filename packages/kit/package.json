@@ -1,0 +1,63 @@
+{
+  "name": "@party-frame/kit",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "description": "TV and phone UI shells, session client, and Phaser stage for party-frame.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bazimazi/party-frame.git",
+    "directory": "packages/kit"
+  },
+  "homepage": "https://github.com/bazimazi/party-frame#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./styles.css": "./styles.css"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsc -b --watch --preserveWatchOutput",
+    "typecheck": "tsc -b --pretty",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@party-frame/i18n": "0.1.0",
+    "@party-frame/protocol": "0.1.0",
+    "colyseus.js": "0.16.22",
+    "qrcode": "1.5.4"
+  },
+  "peerDependencies": {
+    "phaser": "^4.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.0.0"
+  },
+  "peerDependenciesMeta": {
+    "phaser": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/qrcode": "1.5.6",
+    "@types/react": "19.2.18",
+    "phaser": "4.2.1",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-router-dom": "7.18.2",
+    "vite": "8.2.2"
+  },
+  "files": [
+    "dist",
+    "styles.css"
+  ]
+}
