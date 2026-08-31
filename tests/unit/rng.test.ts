@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { Rng } from "@party-frame/game-core";
+import { Rng } from "@partyframe/game-core";
 
 describe("Rng", () => {
   it("produces the same sequence for the same seed", () => {

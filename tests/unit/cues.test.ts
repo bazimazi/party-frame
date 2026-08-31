@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PLATFORM_SFX, voiceForEvent } from "../../packages/kit/src/cues.js";
+import { PLATFORM_SFX, voiceForEvent } from "../../packages/partyframe-client/src/cues.js";
 
 describe("voiceForEvent", () => {
   it("maps platform kinds without asking the game", () => {

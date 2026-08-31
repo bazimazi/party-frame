@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { defineGame } from "@party-frame/game-core";
 import {
   RUNTIME_DEFAULTS,
   bindRuntime,
+  defineGame,
   resetRuntimeHost,
   runtimeHost,
-} from "@party-frame/runtime";
+} from "@bazimazi/partyframe-server";
 import { z } from "zod";
 
 afterEach(() => {

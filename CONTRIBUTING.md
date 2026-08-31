@@ -1,6 +1,9 @@
 # Contributing
 
-This is an npm workspaces monorepo. Published packages live in `packages/*`.
+This is an npm workspaces monorepo. Only `@bazimazi/partyframe-server` and
+`@bazimazi/partyframe-client` are published. `protocol`, `game-core`, and `i18n` stay
+private and are bundled into those two.
+
 The runnable sample is `examples/minimal`.
 
 ## Develop
@@ -17,16 +20,30 @@ npm run example
 `http://<this-machine>:5173/game` — not `localhost`, or phones cannot scan the
 QR code.
 
-## Package roles
-
-Hosts install `@party-frame/runtime` on the server and `@party-frame/kit` in
-the web app. Game authors write against `@party-frame/game-core`.
-`@party-frame/protocol` and `@party-frame/i18n` are implementation packages.
-
 ## Publishing
 
-1. Create the `@party-frame` org on npm.
-2. Set `"private": false` on the packages you are releasing.
-3. Publish with a changeset/release workflow, or from each `packages/*`
-   directory. `publishConfig.access` is already `public`.
-4. Internal deps are pinned to real versions (`0.1.0`), not `*`.
+The first publish of a new package requires **account 2FA and an OTP**. A
+granular token can update packages that already exist; it cannot create these
+two names. Tokens in `.env.local` are ignored.
+
+1. On the **bazimazi** account, enable [two-factor authentication](https://www.npmjs.com/settings/~/tfa) (authenticator app or Windows Hello).
+2. From the repo root:
+
+```powershell
+npm login
+npm whoami
+```
+
+`npm whoami` must print `bazimazi`.
+3. Publish with a fresh authenticator code each time:
+
+```powershell
+npm test
+npm run build
+npm publish -w @bazimazi/partyframe-server --access public --otp=123456
+npm publish -w @bazimazi/partyframe-client --access public --otp=123456
+```
+
+Do not publish `protocol`, `game-core`, `i18n`, the root workspace, or the
+example. Those three are `bundleDependencies` of the server and client packages,
+so they ship inside those tarballs and never get their own npm pages.

@@ -13,7 +13,7 @@ import {
   RoomCodeSchema,
   SessionActionSchema,
   SessionSettingsPatchSchema,
-} from "@party-frame/protocol";
+} from "@partyframe/protocol";
 
 describe("RoomCodeSchema", () => {
   it("accepts and upper-cases a valid code", () => {

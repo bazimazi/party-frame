@@ -1,6 +1,6 @@
 import Phaser from "phaser";
-import type { ControllerPanelProps, GameSceneClass, StageBridge, WebGame } from "@party-frame/kit";
-import { drainEvents } from "@party-frame/kit";
+import type { ControllerPanelProps, GameSceneClass, StageBridge, WebGame } from "@bazimazi/partyframe-client";
+import { drainEvents } from "@bazimazi/partyframe-client";
 
 interface TapPublic {
   taps: Record<string, number>;

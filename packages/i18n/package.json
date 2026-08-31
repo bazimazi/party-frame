@@ -1,19 +1,16 @@
 {
-  "name": "@party-frame/i18n",
+  "name": "@partyframe/i18n",
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
   "type": "module",
-  "description": "Platform strings and translator for party-frame.",
+  "description": "Platform strings and translator for partyframe.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/bazimazi/party-frame.git",
     "directory": "packages/i18n"
   },
   "homepage": "https://github.com/bazimazi/party-frame#readme",
-  "publishConfig": {
-    "access": "public"
-  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

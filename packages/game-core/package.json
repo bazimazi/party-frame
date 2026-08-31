@@ -1,19 +1,16 @@
 {
-  "name": "@party-frame/game-core",
+  "name": "@partyframe/game-core",
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
   "type": "module",
-  "description": "PartyGame contract, seeded RNG, and registry for party-frame.",
+  "description": "PartyGame contract, seeded RNG, and registry for partyframe.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/bazimazi/party-frame.git",
     "directory": "packages/game-core"
   },
   "homepage": "https://github.com/bazimazi/party-frame#readme",
-  "publishConfig": {
-    "access": "public"
-  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -30,7 +27,7 @@
     "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
-    "@party-frame/protocol": "0.1.0",
+    "@partyframe/protocol": "0.1.0",
     "zod": "4.4.3",
     "@standard-schema/spec": "1.0.0"
   },

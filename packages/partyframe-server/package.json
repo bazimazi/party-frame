@@ -1,0 +1,49 @@
+{
+  "name": "@bazimazi/partyframe-server",
+  "version": "0.1.0",
+  "private": false,
+  "license": "MIT",
+  "type": "module",
+  "description": "Colyseus session room, PartyGame helpers, and HTTP/WebSocket host for partyframe.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bazimazi/party-frame.git",
+    "directory": "packages/partyframe-server"
+  },
+  "homepage": "https://github.com/bazimazi/party-frame#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsc -b --watch --preserveWatchOutput",
+    "typecheck": "tsc -b --pretty",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@colyseus/core": "0.16.24",
+    "@colyseus/schema": "3.0.76",
+    "@colyseus/ws-transport": "0.16.5",
+    "@partyframe/game-core": "0.1.0",
+    "@partyframe/protocol": "0.1.0"
+  },
+  "bundleDependencies": [
+    "@partyframe/game-core",
+    "@partyframe/protocol"
+  ],
+  "devDependencies": {
+    "@types/node": "24.13.3"
+  },
+  "files": [
+    "dist"
+  ]
+}

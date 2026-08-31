@@ -1,4 +1,4 @@
-import { defineGame } from "@party-frame/game-core";
+import { defineGame } from "@bazimazi/partyframe-server";
 import { z } from "zod";
 
 const TARGET = 10;

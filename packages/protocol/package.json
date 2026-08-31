@@ -1,19 +1,16 @@
 {
-  "name": "@party-frame/protocol",
+  "name": "@partyframe/protocol",
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
   "type": "module",
-  "description": "Wire types and zod schemas for party-frame.",
+  "description": "Wire types and zod schemas for partyframe.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/bazimazi/party-frame.git",
     "directory": "packages/protocol"
   },
   "homepage": "https://github.com/bazimazi/party-frame#readme",
-  "publishConfig": {
-    "access": "public"
-  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

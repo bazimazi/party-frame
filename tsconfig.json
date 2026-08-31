@@ -3,8 +3,8 @@
   "references": [
     { "path": "./packages/protocol" },
     { "path": "./packages/game-core" },
-    { "path": "./packages/runtime" },
-    { "path": "./packages/kit" },
+    { "path": "./packages/partyframe-server" },
+    { "path": "./packages/partyframe-client" },
     { "path": "./packages/i18n" }
   ]
 }

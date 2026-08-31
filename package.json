@@ -1,5 +1,5 @@
 {
-  "name": "party-frame",
+  "name": "partyframe",
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
@@ -29,12 +29,12 @@
     "node": ">=20.11"
   },
   "scripts": {
-    "build": "npm run build -w @party-frame/protocol -w @party-frame/game-core -w @party-frame/runtime -w @party-frame/kit -w @party-frame/i18n --if-present",
-    "dev": "npm run dev -w @party-frame/protocol -w @party-frame/game-core -w @party-frame/runtime -w @party-frame/kit -w @party-frame/i18n --if-present",
-    "typecheck": "npm run typecheck -w @party-frame/protocol -w @party-frame/game-core -w @party-frame/runtime -w @party-frame/kit -w @party-frame/i18n --if-present",
+    "build": "npm run build -w @partyframe/protocol -w @partyframe/game-core -w @partyframe/i18n -w @bazimazi/partyframe-server -w @bazimazi/partyframe-client --if-present",
+    "dev": "npm run dev -w @partyframe/protocol -w @partyframe/game-core -w @partyframe/i18n -w @bazimazi/partyframe-server -w @bazimazi/partyframe-client --if-present",
+    "typecheck": "npm run typecheck -w @partyframe/protocol -w @partyframe/game-core -w @partyframe/i18n -w @bazimazi/partyframe-server -w @bazimazi/partyframe-client --if-present",
     "test": "vitest run",
     "test:watch": "vitest",
-    "example": "npm run build && npm run dev -w @party-frame/example-minimal"
+    "example": "npm run build && npm run dev -w @partyframe/example-minimal"
   },
   "devDependencies": {
     "@types/node": "24.13.3",

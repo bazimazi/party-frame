@@ -5,7 +5,7 @@
  * a missing translation is a compile error rather than a blank label on a TV.
  */
 export const en = {
-  "app.title": "Party Frame",
+  "app.title": "Partyframe",
   "app.tagline": "The TV is the game. Your phone is the controller.",
 
   "host.newSession": "New game",

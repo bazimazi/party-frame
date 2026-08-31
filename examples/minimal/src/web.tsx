@@ -1,6 +1,6 @@
 import { createRoot } from "react-dom/client";
-import { addMessages, bindKit, PartyApp } from "@party-frame/kit";
-import "@party-frame/kit/styles.css";
+import { addMessages, bindKit, PartyApp } from "@bazimazi/partyframe-client";
+import "@bazimazi/partyframe-client/styles.css";
 import { TapSceneClass, tapWeb } from "./tapWeb.js";
 
 addMessages("en", {

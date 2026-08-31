@@ -1,6 +1,6 @@
 # Minimal host
 
-The smallest app that uses party-frame: one server, one web bundle, one game
+The smallest app that uses partyframe: one server, one web bundle, one game
 (Tap Race — first to 10 taps).
 
 ```bash

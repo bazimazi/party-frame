@@ -8,7 +8,7 @@
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
-import { ROOM_CODE_ALPHABET, ROOM_CODE_LENGTH } from "@party-frame/protocol";
+import { ROOM_CODE_ALPHABET, ROOM_CODE_LENGTH } from "@partyframe/protocol";
 import {
   getGame,
   listGames,
@@ -16,8 +16,8 @@ import {
   requireGame,
   resetRegistry,
   type PartyGame,
-} from "@party-frame/game-core";
-import { createTranslator, en, resolveLocale } from "@party-frame/i18n";
+} from "@partyframe/game-core";
+import { createTranslator, en, resolveLocale } from "@partyframe/i18n";
 import {
   GAME_ACTION_LIMITS,
   RateLimiter,
@@ -25,7 +25,7 @@ import {
   generateRoomCode,
   generateUniqueRoomCode,
   isRoomCodeShaped,
-} from "@party-frame/runtime";
+} from "@bazimazi/partyframe-server";
 
 const stubGame: PartyGame = {
   id: "stub",

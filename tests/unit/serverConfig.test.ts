@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SERVER_CONFIG_FALLBACK } from "@party-frame/kit";
+import { SERVER_CONFIG_FALLBACK } from "@bazimazi/partyframe-client";
 
 describe("SERVER_CONFIG_FALLBACK", () => {
   it("does not name an installed game", () => {

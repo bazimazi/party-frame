@@ -15,7 +15,7 @@ import type {
   ControllerEnvelope,
   GameEventMessage,
   SessionStatus,
-} from "@party-frame/protocol";
+} from "@partyframe/protocol";
 import type { Rng } from "./rng.js";
 
 /** A player as the game rules see them. Deliberately minimal. */

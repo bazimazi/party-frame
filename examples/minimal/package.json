@@ -1,5 +1,5 @@
 {
-  "name": "@party-frame/example-minimal",
+  "name": "@partyframe/example-minimal",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -8,9 +8,8 @@
   },
   "dependencies": {
     "@colyseus/schema": "3.0.76",
-    "@party-frame/game-core": "0.1.0",
-    "@party-frame/kit": "0.1.0",
-    "@party-frame/runtime": "0.1.0",
+    "@bazimazi/partyframe-client": "0.1.0",
+    "@bazimazi/partyframe-server": "0.1.0",
     "phaser": "4.2.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",

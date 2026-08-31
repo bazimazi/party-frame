@@ -1,5 +1,5 @@
 import { MapSchema, Schema, type } from "@colyseus/schema";
-import { SessionSchema, setIfChanged, type GameNetworkAdapter } from "@party-frame/runtime";
+import { SessionSchema, setIfChanged, type GameNetworkAdapter } from "@bazimazi/partyframe-server";
 import { tapGame, type TapState } from "./tapGame.js";
 
 class TapPublicSchema extends Schema {

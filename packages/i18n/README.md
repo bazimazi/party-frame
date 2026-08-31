@@ -1,4 +1,4 @@
-# @party-frame/i18n
+# i18n (private)
 
-Platform strings and translator. Use `addMessages()` from `@party-frame/kit`
-to add game-specific copy.
+Platform strings and translator. Not published. Use `addMessages()` from
+`@bazimazi/partyframe-client`.

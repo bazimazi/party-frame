@@ -1,4 +1,4 @@
-# @party-frame/protocol
+# protocol (private)
 
-Wire types and zod schemas. Host apps should depend on `@party-frame/runtime`
-or `@party-frame/kit` instead of this package.
+Wire types and zod schemas. Not published. Bundled into `@bazimazi/partyframe-server`
+and `@bazimazi/partyframe-client`.

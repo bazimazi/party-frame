@@ -1,4 +1,4 @@
-# party-frame
+# partyframe
 
 TV-plus-phones party-game framework. The shared screen is the game; phones are
 the controllers.
@@ -6,20 +6,22 @@ the controllers.
 ## Install
 
 ```bash
-npm install @party-frame/runtime   # server
-npm install @party-frame/kit       # TV + phones
-npm install @party-frame/game-core # game rules (optional if you only host)
+npm install @bazimazi/partyframe-server   # server + game rules
+npm install @bazimazi/partyframe-client   # TV + phones
 ```
 
 Peer dependencies for the web app: `react`, `react-dom`, `react-router-dom`.
 Add `phaser` if you ship a canvas scene.
+
+These are the only two packages published to npm. Protocol, game-core, and i18n
+live in this repo and are bundled into those two.
 
 ## Quick start
 
 ### Server
 
 ```ts
-import { listen } from "@party-frame/runtime";
+import { defineGame, listen } from "@bazimazi/partyframe-server";
 import { tapAdapter } from "./tapAdapter.js";
 
 await listen({
@@ -32,8 +34,8 @@ await listen({
 
 ```tsx
 import { createRoot } from "react-dom/client";
-import { addMessages, bindKit, PartyApp } from "@party-frame/kit";
-import "@party-frame/kit/styles.css";
+import { addMessages, bindKit, PartyApp } from "@bazimazi/partyframe-client";
+import "@bazimazi/partyframe-client/styles.css";
 
 addMessages("en", { "game.tap.name": "Tap Race" });
 bindKit({ getWebGame, loadSceneForGame });
@@ -45,7 +47,7 @@ That gives you `/game` (TV), `/join` (type a code), and `/join/:code` (QR).
 ## Write a game
 
 ```ts
-import { defineGame } from "@party-frame/game-core";
+import { defineGame } from "@bazimazi/partyframe-server";
 import { z } from "zod";
 
 export const tapGame = defineGame({
@@ -96,11 +98,7 @@ not `localhost`, so phones can scan the QR code.
 
 | Install this | When |
 | --- | --- |
-| `@party-frame/runtime` | Node / Colyseus host |
-| `@party-frame/kit` | React TV + phone UI |
-| `@party-frame/game-core` | Authoring `PartyGame` rules |
-
-`protocol` and `i18n` ship as transitive dependencies. You do not install them
-directly.
+| `@bazimazi/partyframe-server` | Node host and `defineGame` / `PartyGame` |
+| `@bazimazi/partyframe-client` | React TV + phone UI |
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for developing this repo.
