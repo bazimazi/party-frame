@@ -10,7 +10,7 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { ClientPlayer, SessionSettings } from "@partyframe/protocol";
-import { getWebGame } from "../bind.js";
+import { useWebGame } from "../catalog.js";
 import { voiceForEvent } from "../cues.js";
 import { sfx } from "../sfx.js";
 import { useT } from "../i18n/I18nProvider.js";
@@ -48,7 +48,7 @@ export function HostRoute() {
   const snapshot = session?.snapshot ?? null;
   const status = snapshot?.status ?? "CREATED";
   const gameId = snapshot?.gameId ?? "";
-  const webGame = getWebGame(gameId);
+  const webGame = useWebGame(gameId);
 
   /** Everyone who finished joining, in seat order. Unjoined rows stay hidden. */
   const players = useMemo<ClientPlayer[]>(
@@ -57,13 +57,20 @@ export function HostRoute() {
   );
 
   /**
-   * The game's own projection, converted from Colyseus collections to plain
-   * data once per patch and shared by the canvas and the surrounding UI.
+   * The game's own projection, resolved once per patch and shared by the canvas
+   * and the surrounding UI.
+   *
+   * It already arrives as plain data; `normalizePublicState` only runs for a
+   * game that installed a network adapter and has collections to unwrap.
    */
-  const publicState = useMemo(
-    () => (webGame && snapshot ? webGame.normalizePublicState(snapshot.game) : null),
-    [webGame, snapshot?.game, snapshot?.gameRevision],
-  );
+  const publicState = useMemo(() => {
+    if (!snapshot) return null;
+    return webGame?.normalizePublicState
+      ? webGame.normalizePublicState(snapshot.game)
+      : snapshot.game;
+    // `gameRevision` is the cheap signal that `game` changed at all.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [webGame, snapshot?.game, snapshot?.gameRevision]);
 
   const serverNow = useCallback(
     () => session?.connection.clock.now() ?? Date.now(),
@@ -183,16 +190,20 @@ export function HostRoute() {
 
         {inGame && (
           <div className="host__game">
-            <Suspense fallback={<div className="game-stage" />}>
-              <GameStage
-                gameId={gameId}
-                game={publicState}
-                players={players}
-                events={session.events}
-                running={inGame}
-                serverNow={serverNow}
-              />
-            </Suspense>
+            {/* No scene means no canvas: a game may be phones-only. */}
+            {webGame?.scene && (
+              <Suspense fallback={<div className="game-stage" />}>
+                <GameStage
+                  sceneKey={gameId}
+                  loadScene={webGame.scene}
+                  game={publicState}
+                  players={players}
+                  events={session.events}
+                  running={inGame}
+                  serverNow={serverNow}
+                />
+              </Suspense>
+            )}
             <aside className="host__side">
               <PlayerGrid
                 players={players}

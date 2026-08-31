@@ -65,8 +65,21 @@ export class SessionSchema extends Schema {
   /** False while the shared screen is inside its reconnection grace period. */
   @type("boolean") hostConnected = false;
 
-  /** Bumped whenever the game projection below changes, for cheap change checks. */
+  /** Bumped whenever the game projection changes, for cheap change checks. */
   @type("number") gameRevision = 0;
+
+  /**
+   * The active game's public projection, serialised as JSON.
+   *
+   * This is the default transport for game state: a game returns plain data
+   * from `getPublicState()` and the platform ships it, so nothing about
+   * Colyseus reaches a game author. It is written only when the projection
+   * actually changes, so an idle match produces no patches at all.
+   *
+   * A game that installs a `GameNetworkAdapter` gets field-level patches on its
+   * own schema subclass instead and leaves this field empty.
+   */
+  @type("string") gameJson = "";
 }
 
 /** Assigns only when the value actually differs, keeping Colyseus patches minimal. */

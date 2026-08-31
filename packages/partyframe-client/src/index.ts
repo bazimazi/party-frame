@@ -1,17 +1,36 @@
+/**
+ * Public API of `@bazimazi/partyframe-client`.
+ *
+ * Two entry points cover the whole product: `defineWebGame()` to describe what
+ * a game looks like, and `<PartyApp games={...} />` to mount the TV and phone
+ * shells around it.
+ *
+ * The session client, the routes, the config fetch and the audio engine are
+ * intentionally not exported. They are how the shells are built, not a surface
+ * a game is meant to reach into.
+ */
+
+// ------------------------------------------------------------ mounting the app
+export { PartyApp, PartyRoutes, type PartyAppProps } from "./PartyApp.js";
+
+// ------------------------------------------------------------- describing a game
+export { defineWebGame } from "./types.js";
+export type {
+  AnyWebGame,
+  ControllerPanelProps,
+  GameSceneClass,
+  PlayerBadge,
+  WebGame,
+} from "./types.js";
+export type { ClientPlayer, ControllerEnvelope, GameEventMessage } from "@partyframe/protocol";
+
+// --------------------------------------------------------------- inside a scene
+export { drainEvents, type StageBridge } from "./bridge.js";
+
+// ------------------------------------------------------- inside a controller panel
+export { haptic, type Voice } from "./sfx.js";
 export { FuseBar } from "./FuseBar.js";
-export { createStageBridge, drainEvents, type StageBridge } from "./bridge.js";
-export { PLATFORM_SFX, voiceForEvent } from "./cues.js";
-export { haptic, sfx, type Voice } from "./sfx.js";
-export type { ControllerPanelProps, PlayerBadge, WebGame } from "./types.js";
-export { bindKit, getWebGame, loadSceneForGame, type GameSceneClass, type KitCatalog } from "./bind.js";
-export { I18nProvider, useI18n, useT } from "./i18n/I18nProvider.js";
-export { addMessages } from "@partyframe/i18n";
-export { PartyApp, PartyRoutes } from "./PartyApp.js";
-export { HostRoute } from "./shared-screen/HostRoute.js";
-export { JoinLanding } from "./controller/JoinLanding.js";
-export { JoinRoute } from "./controller/JoinRoute.js";
-export { useServerConfig, type ServerConfigResponse } from "./net/useServerConfig.js";
-export { SERVER_CONFIG_FALLBACK } from "./net/serverConfig.js";
-export { SessionConnection, type ConnectOptions, type SessionView } from "./net/SessionConnection.js";
-export { useSession, type UseSessionResult } from "./net/useSession.js";
-export { resolveServerHttpUrl, buildJoinUrl, isLoopbackHost } from "./net/endpoint.js";
+export { useI18n, useT } from "./i18n/I18nProvider.js";
+
+// ------------------------------------------------------------------ localisation
+export { addMessages, registerLocale, type LocaleDefinition, type Translate } from "@partyframe/i18n";

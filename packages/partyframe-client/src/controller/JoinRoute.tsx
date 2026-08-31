@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { RoomCodeSchema, type ControllerMode } from "@partyframe/protocol";
-import { getWebGame } from "../bind.js";
+import { useWebGame } from "../catalog.js";
 import { useT } from "../i18n/I18nProvider.js";
 import { useSession } from "../net/useSession.js";
 import { ConnectionBadge, ErrorScreen, LoadingScreen, PlayerAvatar } from "../ui/common.js";
@@ -37,6 +37,8 @@ export function JoinRoute() {
   const me = snapshot?.players.find((player) => player.id === session?.playerId);
   const envelope = session?.controller ?? null;
   const mode: ControllerMode = envelope?.mode ?? "setup";
+  // Resolved before the early returns below, because it is a hook.
+  const webGame = useWebGame(snapshot?.gameId ?? "");
 
   const serverNow = useCallback(
     () => session?.connection.clock.now() ?? Date.now(),
@@ -83,7 +85,6 @@ export function JoinRoute() {
     return <LoadingScreen message={t("join.joining")} />;
   }
 
-  const webGame = getWebGame(snapshot.gameId);
   const GamePanel = webGame?.Controller;
 
   return (

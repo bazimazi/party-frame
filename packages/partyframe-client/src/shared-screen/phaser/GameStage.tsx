@@ -13,20 +13,23 @@
 
 import { useEffect, useRef } from "react";
 import type { ClientPlayer, GameEventMessage } from "@partyframe/protocol";
-import { loadSceneForGame } from "../../bind.js";
 import { createStageBridge, type StageBridge } from "../../bridge.js";
 import { sfx } from "../../sfx.js";
+import type { GameSceneClass } from "../../types.js";
 
 export function GameStage({
-  gameId,
+  sceneKey,
+  loadScene,
   game,
   players,
   events,
   running,
   serverNow,
 }: {
-  gameId: string;
-  /** Live public projection from the server, already normalised by the game. */
+  /** Scene key the platform assigns; the game's class does not have to name itself. */
+  sceneKey: string;
+  loadScene: () => Promise<GameSceneClass>;
+  /** Live public projection from the server. */
   game: unknown;
   players: ClientPlayer[];
   /** Full event history; only the newly arrived tail is forwarded to the scene. */
@@ -54,10 +57,7 @@ export function GameStage({
     let cancelled = false;
 
     void (async () => {
-      const [{ default: Phaser }, SceneClass] = await Promise.all([
-        import("phaser"),
-        loadSceneForGame(gameId),
-      ]);
+      const [{ default: Phaser }, SceneClass] = await Promise.all([import("phaser"), loadScene()]);
       // The component may have unmounted while the renderer was downloading.
       if (cancelled || !SceneClass) return;
 
@@ -77,17 +77,20 @@ export function GameStage({
         // Sound is owned by the shared screen's own engine, which respects the
         // browser's autoplay policy; Phaser's would be a second, unmanaged one.
         audio: { noAudio: true },
-        scene: [SceneClass],
+        scene: [],
       });
 
-      instance.scene.start(SceneClass.KEY, { bridge });
+      // Added rather than declared in the config so the platform supplies the
+      // key. A game's scene is then an ordinary `Phaser.Scene` subclass, with no
+      // static key to keep in sync with its game id.
+      instance.scene.add(sceneKey, SceneClass, true, { bridge });
     })();
 
     return () => {
       cancelled = true;
       instance?.destroy(true);
     };
-  }, [gameId]);
+  }, [sceneKey, loadScene]);
 
   // Keep the bridge current. Assignments only - no allocation, no re-render.
   useEffect(() => {

@@ -65,10 +65,11 @@ export const RUNTIME_DEFAULTS = {
   sessionMaxAgeMs: 3 * 60 * 60 * 1000,
 } as const;
 
-/** Only `defaultGameId` is required. Everything else has a default. */
-export type BindRuntimeInput = Partial<Omit<RuntimeHost, "defaultGameId">> & {
-  defaultGameId: string;
-};
+/**
+ * Every field is optional. `defaultGameId` falls back to the first installed
+ * game, which is what a single-game server wants and what `listen()` passes.
+ */
+export type BindRuntimeInput = Partial<RuntimeHost>;
 
 let host: RuntimeHost | null = null;
 
@@ -93,7 +94,7 @@ function createConsoleLogger(base: LogContext = {}): RootLogger {
 
 export function bindRuntime(next: BindRuntimeInput): void {
   host = {
-    defaultGameId: next.defaultGameId,
+    defaultGameId: next.defaultGameId ?? "",
     maxPlayers: next.maxPlayers ?? RUNTIME_DEFAULTS.maxPlayers,
     sessionTimeoutMs: next.sessionTimeoutMs ?? RUNTIME_DEFAULTS.sessionTimeoutMs,
     sessionMaxAgeMs: next.sessionMaxAgeMs ?? RUNTIME_DEFAULTS.sessionMaxAgeMs,

@@ -9,50 +9,32 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
 import { ROOM_CODE_ALPHABET, ROOM_CODE_LENGTH } from "@partyframe/protocol";
+import { defineGame } from "@partyframe/game-core";
 import {
-  getGame,
-  listGames,
-  registerGame,
-  requireGame,
-  resetRegistry,
-  type PartyGame,
-} from "@partyframe/game-core";
+  getInstalled,
+  install,
+  listInstalledGames,
+  requireInstalled,
+  resetInstalled,
+} from "../../packages/partyframe-server/src/catalog.js";
 import { createTranslator, en, resolveLocale } from "@partyframe/i18n";
 import {
   GAME_ACTION_LIMITS,
   RateLimiter,
   SESSION_ACTION_LIMITS,
+} from "../../packages/partyframe-server/src/rateLimit.js";
+import {
   generateRoomCode,
   generateUniqueRoomCode,
   isRoomCodeShaped,
-} from "@bazimazi/partyframe-server";
+} from "../../packages/partyframe-server/src/roomCode.js";
 
-const stubGame: PartyGame = {
+const stubGame = defineGame({
   id: "stub",
-  nameKey: "game.stub.name",
-  minPlayers: 1,
-  maxPlayers: 8,
   actionSchema: z.object({ type: z.literal("noop") }),
-  parseOptions: () => ({}),
   createState: () => ({}),
-  start() {},
-  handleAction() {
-    return false;
-  },
-  update() {},
-  isFinished() {
-    return false;
-  },
-  getControllerState() {
-    return { active: false, game: null };
-  },
-  getPublicState() {
-    return {};
-  },
-  createBot() {
-    return { difficulty: "easy", decide: () => null };
-  },
-};
+  handleAction: () => false,
+});
 
 describe("room codes", () => {
   it("has the configured length", () => {
@@ -169,35 +151,62 @@ describe("rate limiting", () => {
   });
 });
 
-describe("game registry", () => {
+describe("game catalog", () => {
   beforeEach(() => {
-    resetRegistry();
-    registerGame(stubGame);
+    resetInstalled();
+    install(stubGame);
   });
 
   afterEach(() => {
-    resetRegistry();
+    resetInstalled();
   });
 
-  it("resolves a registered game", () => {
-    expect(getGame("stub")?.id).toBe("stub");
-    expect(listGames()).toHaveLength(1);
+  it("resolves an installed game", () => {
+    expect(getInstalled("stub")?.game.id).toBe("stub");
+    expect(listInstalledGames()).toHaveLength(1);
   });
 
   it("returns undefined for an unknown id rather than throwing", () => {
-    expect(getGame("does-not-exist")).toBeUndefined();
+    expect(getInstalled("does-not-exist")).toBeUndefined();
   });
 
   it("names what is installed when a required game is missing", () => {
-    expect(() => requireGame("does-not-exist")).toThrow(/Registered: stub/);
+    expect(() => requireInstalled("does-not-exist")).toThrow(/Installed: stub/);
   });
 
-  it("refuses to register the same id twice", () => {
-    expect(() => registerGame(stubGame)).toThrow(/already registered/);
+  it("refuses to install the same id twice", () => {
+    expect(() => install(stubGame)).toThrow(/already installed/);
+  });
+
+  it("accepts a bare definition and resolves it on the way in", () => {
+    install({
+      id: "bare",
+      actionSchema: z.object({ type: z.literal("noop") }),
+      createState: () => ({}),
+      handleAction: () => false,
+    });
+    const { game, adapter } = requireInstalled("bare");
+    expect(adapter).toBeNull();
+    expect(game.nameKey).toBe("game.bare.name");
+    expect(game.update).toBeTypeOf("function");
+  });
+
+  it("keeps an adapter alongside the game it wraps", () => {
+    install({
+      game: {
+        id: "wrapped",
+        actionSchema: z.object({ type: z.literal("noop") }),
+        createState: () => ({}),
+        handleAction: () => false,
+      },
+      createState: () => ({}) as never,
+      project: () => undefined,
+    });
+    expect(requireInstalled("wrapped").adapter).not.toBeNull();
   });
 
   it("exposes the player bounds the lobby needs", () => {
-    const game = requireGame("stub");
+    const { game } = requireInstalled("stub");
     expect(game.minPlayers).toBeGreaterThanOrEqual(1);
     expect(game.maxPlayers).toBeGreaterThanOrEqual(game.minPlayers);
     expect(game.nameKey).toMatch(/^game\./);

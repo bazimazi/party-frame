@@ -3,20 +3,33 @@
  *
  * Hosts should not have to wire Colyseus, CORS, `/api/config` and room lookup
  * themselves. `listen()` installs games, binds runtime defaults, and serves the
- * HTTP + WebSocket surface the kit already talks to.
+ * HTTP + WebSocket surface the client already talks to.
  */
 
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { Server, matchMaker } from "@colyseus/core";
 import { WebSocketTransport } from "@colyseus/ws-transport";
 import { PARTY_ROOM } from "@partyframe/protocol";
-import { install, listInstalledGames, type GameNetworkAdapter } from "./adapters.js";
+import { install, listInstalledGames, listInstalledIds, type InstallableGame } from "./catalog.js";
 import { EVENT, bindRuntime, runtimeHost, type BindRuntimeInput } from "./bind.js";
 import { PartySessionRoom, type RoomMetadata } from "./PartySessionRoom.js";
 
 export interface ListenOptions extends BindRuntimeInput {
-  games: GameNetworkAdapter[];
+  /**
+   * The games this server can host, in the order they should be offered.
+   *
+   * Each entry is a `defineGame()` result, a bare game definition, or - only
+   * when a game needs field-level Colyseus patches - a `GameNetworkAdapter`.
+   */
+  games: InstallableGame[];
+  /**
+   * Which game a shared screen gets when it does not ask for one.
+   * Defaults to the first entry in `games`.
+   */
+  defaultGameId?: string;
+  /** Defaults to 2567. */
   port?: number;
+  /** Defaults to `0.0.0.0`, so phones on the LAN can reach it. */
   hostname?: string;
   /** Public origin encoded in QR codes when the page sits behind a proxy. */
   publicBaseUrl?: string;
@@ -26,6 +39,8 @@ export interface PartyServer {
   gameServer: Server;
   httpServer: ReturnType<typeof createServer>;
   port: number;
+  /** Shuts down the HTTP and WebSocket listeners. */
+  close(): Promise<void>;
 }
 
 export interface PublicServerConfig {
@@ -105,16 +120,25 @@ async function handleHttp(
 }
 
 export async function listen(options: ListenOptions): Promise<PartyServer> {
-  const {
-    games,
-    port = 2567,
-    hostname = "0.0.0.0",
-    publicBaseUrl = "",
-    ...runtime
-  } = options;
+  const { games, port = 2567, hostname = "0.0.0.0", publicBaseUrl = "", ...runtime } = options;
 
-  bindRuntime(runtime);
-  for (const adapter of games) install(adapter);
+  if (games.length === 0) {
+    throw new Error("listen(): `games` is empty - a server with no games can host nothing");
+  }
+
+  // Installed first so `defaultGameId` can be inferred from the catalog, and so
+  // an unknown explicit default fails here rather than on a player's first join.
+  for (const entry of games) install(entry);
+
+  const ids = listInstalledIds();
+  const defaultGameId = runtime.defaultGameId ?? ids[0] ?? "";
+  if (!ids.includes(defaultGameId)) {
+    throw new Error(
+      `listen(): defaultGameId "${defaultGameId}" is not among the installed games (${ids.join(", ")})`,
+    );
+  }
+
+  bindRuntime({ ...runtime, defaultGameId });
 
   const httpServer = createServer((req, res) => {
     void handleHttp(req, res, publicBaseUrl);
@@ -127,6 +151,12 @@ export async function listen(options: ListenOptions): Promise<PartyServer> {
   gameServer.define(PARTY_ROOM, PartySessionRoom);
   await gameServer.listen(port, hostname);
 
-  runtimeHost().log.info(EVENT.SERVER_STARTED, { port, hostname });
-  return { gameServer, httpServer, port };
+  runtimeHost().log.info(EVENT.SERVER_STARTED, { port, hostname, defaultGameId });
+
+  return {
+    gameServer,
+    httpServer,
+    port,
+    close: () => gameServer.gracefullyShutdown(false),
+  };
 }

@@ -16,6 +16,7 @@ import {
   Rng,
   randomSeed,
   validateSync,
+  type AnyPartyGame,
   type BotStrategy,
   type GameContext,
   type GamePlayer,
@@ -44,7 +45,7 @@ import {
   type SessionStatus,
   type WelcomePayload,
 } from "@partyframe/protocol";
-import { requireAdapter, type GameNetworkAdapter } from "./adapters.js";
+import { requireInstalled, type GameNetworkAdapter } from "./catalog.js";
 import { EVENT, runtimeHost, type Logger } from "./bind.js";
 import { makeBotIdentity } from "./bots.js";
 import { generateUniqueRoomCode } from "./roomCode.js";
@@ -92,7 +93,11 @@ const RUNNING_STATUSES = new Set<SessionStatus>(["STARTING", "PLAYING", "ROUND_E
 export class PartySessionRoom extends Room<SessionSchema, RoomMetadata> {
   override maxClients = ABSOLUTE_MAX_PLAYERS + 2;
 
-  private adapter!: GameNetworkAdapter;
+  private game!: AnyPartyGame;
+  /** Set only when the game shipped its own Colyseus representation. */
+  private adapter: GameNetworkAdapter | null = null;
+  /** Last public projection, as JSON, so an unchanged tick produces no patch. */
+  private lastPublicJson = "";
   private gameState: unknown;
   private gameOptions: unknown;
   private rng!: Rng;
@@ -127,7 +132,9 @@ export class PartySessionRoom extends Room<SessionSchema, RoomMetadata> {
   override async onCreate(options: RoomCreateOptions): Promise<void> {
     const host = runtimeHost();
     const gameId = options.gameId ?? host.defaultGameId;
-    this.adapter = requireAdapter(gameId);
+    const installed = requireInstalled(gameId);
+    this.game = installed.game;
+    this.adapter = installed.adapter;
 
     // Generated here rather than by the caller so a client can never choose,
     // guess or reuse a code. Colyseus awaits `onCreate` before admitting anyone,
@@ -142,19 +149,21 @@ export class PartySessionRoom extends Room<SessionSchema, RoomMetadata> {
     this.logger = host.log.child({
       sessionId: this.roomId,
       roomCode: publicCode,
-      gameId: this.adapter.game.id,
+      gameId: this.game.id,
     });
 
     this.rng = new Rng(options.seed ?? randomSeed());
-    this.gameOptions = this.adapter.game.parseOptions({});
-    this.gameState = this.adapter.game.createState(this.gameOptions);
+    this.gameOptions = this.game.parseOptions({});
+    this.gameState = this.game.createState(this.gameOptions);
 
-    const state = this.adapter.createState();
+    // Without an adapter the base schema is enough: the projection rides along
+    // in `gameJson` rather than in game-specific fields.
+    const state = this.adapter ? this.adapter.createState() : new SessionSchema();
     state.publicCode = publicCode;
-    state.gameId = this.adapter.game.id;
+    state.gameId = this.game.id;
     state.status = "LOBBY";
     state.serverTime = Date.now();
-    state.settings.maxPlayers = Math.min(host.maxPlayers, this.adapter.game.maxPlayers);
+    state.settings.maxPlayers = Math.min(host.maxPlayers, this.game.maxPlayers);
     state.settings.botCount = 0;
     state.settings.botDifficulty = "medium";
     this.setState(state);
@@ -431,7 +440,7 @@ export class PartySessionRoom extends Room<SessionSchema, RoomMetadata> {
     const difficulty = this.state.settings.botDifficulty;
     let strategy = this.botStrategies.get(difficulty);
     if (!strategy) {
-      strategy = this.adapter.game.createBot(
+      strategy = this.game.createBot(
         difficulty === "easy" || difficulty === "hard" ? difficulty : "medium",
       );
       this.botStrategies.set(difficulty, strategy);
@@ -515,7 +524,7 @@ export class PartySessionRoom extends Room<SessionSchema, RoomMetadata> {
         return;
       }
 
-      const validated = validateSync(this.adapter.game.actionSchema, payload);
+      const validated = validateSync(this.game.actionSchema, payload);
       if (!validated.ok) {
         this.sendError(client, "INVALID_PAYLOAD");
         this.logger.debug(EVENT.ACTION_REJECTED, {
@@ -668,7 +677,7 @@ export class PartySessionRoom extends Room<SessionSchema, RoomMetadata> {
       // Never set a cap below the number of people already in the room.
       settings.maxPlayers = Math.max(
         humans,
-        Math.min(patch.maxPlayers, this.adapter.game.maxPlayers, runtimeHost().maxPlayers),
+        Math.min(patch.maxPlayers, this.game.maxPlayers, runtimeHost().maxPlayers),
       );
     }
     if (patch.botDifficulty !== undefined) {
@@ -679,7 +688,7 @@ export class PartySessionRoom extends Room<SessionSchema, RoomMetadata> {
       settings.botCount = Math.max(0, Math.min(patch.botCount, ABSOLUTE_MAX_PLAYERS));
     }
     if (patch.gameOptions !== undefined) {
-      this.gameOptions = this.adapter.game.parseOptions(patch.gameOptions);
+      this.gameOptions = this.game.parseOptions(patch.gameOptions);
     }
 
     this.reconcileBots();
@@ -691,16 +700,16 @@ export class PartySessionRoom extends Room<SessionSchema, RoomMetadata> {
     this.reconcileBots();
 
     const joined = this.gamePlayers();
-    if (joined.length < this.adapter.game.minPlayers) {
+    if (joined.length < this.game.minPlayers) {
       this.emitPlatformEvent({
         kind: "start-refused",
         messageKey: "host.needMorePlayers",
-        params: { count: this.adapter.game.minPlayers },
+        params: { count: this.game.minPlayers },
       });
       return;
     }
 
-    this.gameState = this.adapter.game.createState(this.gameOptions);
+    this.gameState = this.game.createState(this.gameOptions);
     this.botPending.clear();
     for (const player of this.state.players.values()) {
       player.ready = false;
@@ -709,7 +718,7 @@ export class PartySessionRoom extends Room<SessionSchema, RoomMetadata> {
     this.setStatus("STARTING");
 
     const ctx = this.buildContext(Date.now());
-    this.adapter.game.start(ctx);
+    this.game.start(ctx);
     // A countdown game calls requestStatus("STARTING") to hold this phase, then
     // PLAYING from update(). Anything else would sit here forever.
     const holdStarting = this.requestedStatus === "STARTING";
@@ -722,7 +731,7 @@ export class PartySessionRoom extends Room<SessionSchema, RoomMetadata> {
   }
 
   private returnToLobby(): void {
-    this.gameState = this.adapter.game.createState(this.gameOptions);
+    this.gameState = this.game.createState(this.gameOptions);
     this.botPending.clear();
     for (const player of this.state.players.values()) {
       player.ready = false;
@@ -784,7 +793,7 @@ export class PartySessionRoom extends Room<SessionSchema, RoomMetadata> {
     const ctx = this.buildContext(now);
     let handled = false;
     try {
-      handled = this.adapter.game.handleAction(ctx, playerId, action);
+      handled = this.game.handleAction(ctx, playerId, action);
     } catch (error) {
       this.logger.error(EVENT.GAME_ERROR, {
         playerId,
@@ -801,11 +810,11 @@ export class PartySessionRoom extends Room<SessionSchema, RoomMetadata> {
     playerId: string,
     change: "joined" | "left" | "disconnected" | "reconnected",
   ): void {
-    const hook = this.adapter.game.onPlayerChanged;
+    const hook = this.game.onPlayerChanged;
     if (!hook) return;
     const ctx = this.buildContext(Date.now());
     try {
-      hook.call(this.adapter.game, ctx, playerId, change);
+      hook.call(this.game, ctx, playerId, change);
     } catch (error) {
       this.logger.error(EVENT.GAME_ERROR, {
         playerId,
@@ -820,7 +829,7 @@ export class PartySessionRoom extends Room<SessionSchema, RoomMetadata> {
     if (
       RUNNING_STATUSES.has(this.state.status as SessionStatus) &&
       this.requestedStatus !== "GAME_OVER" &&
-      this.adapter.game.isFinished(ctx)
+      this.game.isFinished(ctx)
     ) {
       this.requestedStatus = "GAME_OVER";
     }
@@ -829,10 +838,25 @@ export class PartySessionRoom extends Room<SessionSchema, RoomMetadata> {
     this.projectGameState(ctx.now);
   }
 
+  /**
+   * Publishes the game's public projection, if it changed.
+   *
+   * The change check matters: this runs on every tick, and bumping
+   * `gameRevision` unconditionally would emit a Colyseus patch ten times a
+   * second for a match where nothing is happening, and re-render the shared
+   * screen just as often.
+   */
   private projectGameState(now: number): void {
     const ctx = this.buildContext(now);
     try {
-      this.adapter.project(this.state, this.adapter.game.getPublicState(ctx));
+      const publicState = this.game.getPublicState(ctx);
+      const json = JSON.stringify(publicState ?? null) ?? "null";
+      if (json === this.lastPublicJson) return;
+      this.lastPublicJson = json;
+
+      if (this.adapter) this.adapter.project(this.state, publicState);
+      else this.state.gameJson = json;
+
       this.state.gameRevision += 1;
     } catch (error) {
       this.logger.error(EVENT.GAME_ERROR, {
@@ -882,7 +906,7 @@ export class PartySessionRoom extends Room<SessionSchema, RoomMetadata> {
     if (player?.joined) {
       const ctx = this.buildContext(Date.now());
       try {
-        gamePart = this.adapter.game.getControllerState(ctx, playerId);
+        gamePart = this.game.getControllerState(ctx, playerId);
       } catch (error) {
         this.logger.error(EVENT.GAME_ERROR, {
           playerId,
@@ -951,7 +975,7 @@ export class PartySessionRoom extends Room<SessionSchema, RoomMetadata> {
     if (RUNNING_STATUSES.has(this.state.status as SessionStatus)) {
       const ctx = this.buildContext(now);
       try {
-        this.adapter.game.update(ctx, deltaMs);
+        this.game.update(ctx, deltaMs);
         this.tickBots(ctx, now);
       } catch (error) {
         this.logger.error(EVENT.GAME_ERROR, {
@@ -1041,7 +1065,7 @@ export class PartySessionRoom extends Room<SessionSchema, RoomMetadata> {
         return;
       }
       default: {
-        const handler = this.adapter.game.devCommands?.[command];
+        const handler = this.game.devCommands?.[command];
         if (!handler) return;
         const ctx = this.buildContext(Date.now());
         handler(ctx, value);

@@ -23,3 +23,16 @@ export interface ControllerEnvelope<TGame = unknown> {
   /** Monotonic counter; lets a client drop out-of-order envelopes. */
   revision: number;
 }
+
+/**
+ * The half of the envelope a game produces.
+ *
+ * The platform fills in `mode`, `gameId`, `score` and `revision` itself, so a
+ * game's `getControllerState` returns only these two fields.
+ */
+export interface ControllerProjection<TGame = unknown> {
+  /** True while this player may act at all. */
+  active: boolean;
+  /** Whatever this one phone needs to render. */
+  game: TGame;
+}

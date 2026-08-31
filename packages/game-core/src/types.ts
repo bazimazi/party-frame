@@ -7,12 +7,16 @@
  *
  * The platform supplies everything else: sessions, room codes, QR joining,
  * players, bots, reconnection, lobby, scoring storage and the session lifecycle.
+ *
+ * Two shapes live here. `GameDefinition` is what an author writes - almost
+ * everything on it is optional. `PartyGame` is the resolved form the platform
+ * runs, produced by `defineGame()`, with every default filled in.
  */
 
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import type {
   BotDifficulty,
-  ControllerEnvelope,
+  ControllerProjection,
   GameEventMessage,
   SessionStatus,
 } from "@partyframe/protocol";
@@ -85,55 +89,52 @@ export interface BotStrategy<TState, TOptions, TAction> {
    * mutate state. The platform de-duplicates: while a decision is pending, the
    * strategy is not consulted again.
    */
-  decide(
-    ctx: GameContext<TState, TOptions>,
-    botId: string,
-  ): BotDecision<TAction> | null;
+  decide(ctx: GameContext<TState, TOptions>, botId: string): BotDecision<TAction> | null;
 }
 
+/** How a player's presence changed, passed to `onPlayerChanged`. */
+export type PlayerChange = "joined" | "left" | "disconnected" | "reconnected";
+
 /**
- * A playable game.
+ * What a game author writes and hands to `defineGame()`.
  *
- * `TState` is the game's own plain-object state. It is the source of truth on
- * the server; the network schema is a projection of it, produced by an adapter
- * that lives in the server app, not here.
+ * Only `id`, `actionSchema`, `createState` and `handleAction` are required; a
+ * game that needs nothing else is four fields long. Everything else has a
+ * platform default, documented on the member itself.
  */
-export interface PartyGame<
+export interface GameDefinition<
   TState = unknown,
   TOptions = unknown,
   TAction = unknown,
   TController = unknown,
-  TPublic = unknown,
+  TPublic = TState,
 > {
   readonly id: string;
-  /** i18n key for the display name, not a pre-translated string. */
-  readonly nameKey: string;
-  readonly minPlayers: number;
-  readonly maxPlayers: number;
 
-  /** Validates and defaults the host's game options. */
-  parseOptions(raw: unknown): TOptions;
+  /**
+   * i18n key for the display name, not a pre-translated string.
+   *
+   * Defaults to `game.<id>.name`, which is the key the shared screen already
+   * looks up, so most games can leave it out.
+   */
+  readonly nameKey?: string;
+
+  /** Defaults to 1. */
+  readonly minPlayers?: number;
+  /** Defaults to 8, the platform's hard ceiling. */
+  readonly maxPlayers?: number;
 
   /**
    * Runtime validator for `game-action` payloads.
    *
    * Typed as a Standard Schema so a game may use Zod, Valibot or anything else
-   * without the platform depending on that choice.
+   * without the platform depending on that choice. Required: it is the only
+   * thing standing between a phone and the rules.
    */
   readonly actionSchema: StandardSchemaV1<unknown, TAction>;
 
   /** Fresh state for a new match. Must not read any ambient clock or randomness. */
   createState(options: TOptions): TState;
-
-  /**
-   * Called once after the host starts a match, while the session is `STARTING`.
-   *
-   * Call `ctx.requestStatus("PLAYING")` to begin immediately, or
-   * `ctx.requestStatus("STARTING")` to keep a countdown and move to `PLAYING`
-   * later from `update()`. If you request nothing, the platform enters
-   * `PLAYING` for you so phones do not sit on "Starting...".
-   */
-  start(ctx: GameContext<TState, TOptions>): void;
 
   /**
    * Applies one validated action.
@@ -142,41 +143,99 @@ export interface PartyGame<
    * (wrong turn, wrong phase, duplicate submission). The platform turns that
    * into a `WRONG_STATE` error for the sender.
    */
-  handleAction(
-    ctx: GameContext<TState, TOptions>,
-    playerId: string,
-    action: TAction,
-  ): boolean;
+  handleAction(ctx: GameContext<TState, TOptions>, playerId: string, action: TAction): boolean;
 
-  /** Server tick. Owns all timing: fuses, deadlines, round transitions. */
-  update(ctx: GameContext<TState, TOptions>, deltaMs: number): void;
+  /** Validates and defaults the host's game options. Defaults to `() => ({})`. */
+  parseOptions?(raw: unknown): TOptions;
 
-  /** True once a winner can be declared. */
-  isFinished(ctx: GameContext<TState, TOptions>): boolean;
+  /**
+   * Called once after the host starts a match, while the session is `STARTING`.
+   *
+   * Call `ctx.requestStatus("PLAYING")` to begin immediately, or
+   * `ctx.requestStatus("STARTING")` to keep a countdown and move to `PLAYING`
+   * later from `update()`. The default - and what happens when you request
+   * nothing - is to enter `PLAYING`, so phones never sit on "Starting...".
+   */
+  start?(ctx: GameContext<TState, TOptions>): void;
+
+  /**
+   * Server tick. Owns all timing: fuses, deadlines, round transitions.
+   * Defaults to doing nothing, for games driven purely by actions.
+   */
+  update?(ctx: GameContext<TState, TOptions>, deltaMs: number): void;
+
+  /**
+   * True once a winner can be declared. Defaults to never, which leaves the
+   * match running until the host ends it.
+   */
+  isFinished?(ctx: GameContext<TState, TOptions>): boolean;
 
   /** Called when a player disconnects, joins mid-game, or is removed. */
   onPlayerChanged?(
     ctx: GameContext<TState, TOptions>,
     playerId: string,
-    change: "joined" | "left" | "disconnected" | "reconnected",
+    change: PlayerChange,
   ): void;
 
-  /** The per-player projection sent to one phone. */
-  getControllerState(
+  /**
+   * The per-player projection sent to one phone.
+   * Defaults to `{ active: true, game: null }`.
+   */
+  getControllerState?(
     ctx: GameContext<TState, TOptions>,
     playerId: string,
-  ): Omit<ControllerEnvelope<TController>, "mode" | "gameId" | "score" | "revision">;
+  ): ControllerProjection<TController>;
 
-  /** The projection mirrored into network state for the shared screen. */
-  getPublicState(ctx: GameContext<TState, TOptions>): TPublic;
+  /**
+   * The projection the shared screen renders from.
+   *
+   * Defaults to `ctx.state`, which is right whenever the whole state is public.
+   * It is synchronised as JSON, so it must be plain data.
+   */
+  getPublicState?(ctx: GameContext<TState, TOptions>): TPublic;
 
-  /** Builds a bot for the requested difficulty. */
-  createBot(difficulty: BotDifficulty): BotStrategy<TState, TOptions, TAction>;
+  /**
+   * Builds a bot for the requested difficulty.
+   *
+   * Omit it and the lobby's bot seats simply idle - a bot is never a
+   * requirement for shipping a game.
+   */
+  createBot?(difficulty: BotDifficulty): BotStrategy<TState, TOptions, TAction>;
 
   /** Developer-mode shortcuts, e.g. skipping a round. Never reachable in production. */
+  devCommands?: Record<string, (ctx: GameContext<TState, TOptions>, value?: number) => void>;
+}
+
+/**
+ * A resolved, playable game: a `GameDefinition` with every default applied.
+ *
+ * Produced by `defineGame()`. The room calls each member unconditionally, which
+ * is why nothing here is optional except the genuinely opt-in hooks.
+ */
+export interface PartyGame<
+  TState = unknown,
+  TOptions = unknown,
+  TAction = unknown,
+  TController = unknown,
+  TPublic = TState,
+> extends Required<
+    Omit<
+      GameDefinition<TState, TOptions, TAction, TController, TPublic>,
+      "onPlayerChanged" | "devCommands"
+    >
+  > {
+  onPlayerChanged?(
+    ctx: GameContext<TState, TOptions>,
+    playerId: string,
+    change: PlayerChange,
+  ): void;
   devCommands?: Record<string, (ctx: GameContext<TState, TOptions>, value?: number) => void>;
 }
 
 /** Convenience alias for a fully-erased game, used by the platform registry. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AnyPartyGame = PartyGame<any, any, any, any, any>;
+
+/** Convenience alias for an unresolved definition of any shape. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyGameDefinition = GameDefinition<any, any, any, any, any>;

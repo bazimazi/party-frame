@@ -27,6 +27,7 @@ import {
   type WelcomePayload,
 } from "@partyframe/protocol";
 import { ClockSync } from "./clock.js";
+import { createProjectionCache, readProjection, type ProjectionCache } from "./projection.js";
 import { resolveServerHttpUrl } from "./endpoint.js";
 import { clearCredentials, loadCredentials, saveCredentials } from "./storage.js";
 
@@ -103,7 +104,7 @@ function bool(value: unknown, fallback = false): boolean {
  * schema mutates in place, so a component memoised on it would never update,
  * and a component not memoised on it would re-render on every patch.
  */
-function toSnapshot(state: unknown): SessionSnapshot | null {
+function toSnapshot(state: unknown, cache: ProjectionCache): SessionSnapshot | null {
   if (!isRecord(state)) return null;
 
   const players: ClientPlayer[] = readMap(state.players)
@@ -139,10 +140,9 @@ function toSnapshot(state: unknown): SessionSnapshot | null {
     hostPlayerId: str(state.hostPlayerId),
     hostConnected: bool(state.hostConnected),
     gameRevision: num(state.gameRevision),
-    // Handed through untouched. Every game's session schema exposes its
-    // projection under `game`, and only that game's own client code knows how
-    // to read it - the platform deliberately treats it as opaque.
-    game: (state as { game?: unknown }).game ?? null,
+    // Handed through untouched: only the active game's own client code knows
+    // how to read it, and the platform deliberately treats it as opaque.
+    game: readProjection(state, cache),
   };
 }
 
@@ -172,6 +172,7 @@ export class SessionConnection {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private disposed = false;
   private options: ConnectOptions | null = null;
+  private readonly projection: ProjectionCache = createProjectionCache();
 
   readonly clock: ClockSync;
 
@@ -260,7 +261,7 @@ export class SessionConnection {
     this.clock.start();
 
     room.onStateChange((state) => {
-      this.patch({ snapshot: toSnapshot(state) });
+      this.patch({ snapshot: toSnapshot(state, this.projection) });
     });
 
     room.onMessage(MSG.WELCOME, (payload: WelcomePayload) => {
