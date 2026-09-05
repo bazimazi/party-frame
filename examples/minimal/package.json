@@ -1,6 +1,6 @@
 {
   "name": "@partyframe/example-minimal",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,8 +8,8 @@
   },
   "dependencies": {
     "@colyseus/schema": "3.0.76",
-    "@bazimazi/partyframe-client": "0.1.0",
-    "@bazimazi/partyframe-server": "0.1.0",
+    "@bazimazi/partyframe-client": "0.2.0",
+    "@bazimazi/partyframe-server": "0.2.0",
     "phaser": "4.2.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
